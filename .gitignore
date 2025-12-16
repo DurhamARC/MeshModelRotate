@@ -1,4 +1,6 @@
 3DModels/*
+ToConvert/*
+!ToConvert/.gitkeep
 *.swp
 .vscode/
 CLAUDE.md

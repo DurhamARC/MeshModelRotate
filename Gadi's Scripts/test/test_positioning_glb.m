@@ -133,5 +133,5 @@ fprintf('\n=== Test Complete ===\n');
 
 %% Save positioned mesh (optional)
 % Uncomment to save the positioned vertices
-% save('positioned_vertices.mat', 'v_positioned', 'f');
-% fprintf('Positioned mesh saved to positioned_vertices.mat\n');
+save('positioned_vertices.mat', 'v_positioned', 'f');
+fprintf('Positioned mesh saved to positioned_vertices.mat\n');

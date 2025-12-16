@@ -3,7 +3,7 @@
 """ Convert a mesh file to a GLB file. """
 import sys
 import os
-os.chdir('C:/Users/frede/Dropbox/Projects/AHRC HoB Scan/PyHandaxeScanConvert_v1_0')
+
 import pymeshlab as ml
 import trimesh
 import glbutils
@@ -76,41 +76,20 @@ def mesh2glb(inname, outname, removeColor=False):
     if tmpname != inname:
         os.remove(tmpname)
 
-directory = 'ToConvert'
 
-for filename in os.listdir(directory):
-    if filename.endswith('.ply'):
-        with open(os.path.join(directory, filename)):
-            f = os.path.join(directory, filename)
+def convert_file(directory, filename, extension):
+    """Convert a single file from directory with given extension to GLB."""
+    input_path = os.path.join(directory, filename)
+    output_name = filename.replace(extension, ".glb")
+    print("Converting", filename, "to", output_name)
+    mesh2glb(input_path, output_name, removeColor=False)
 
-            if __name__ == "__main__":
-                in_name = filename
-                out_name = filename.replace(".ply", ".glb")
 
-                if len(sys.argv) > 1:
-                    in_name = sys.argv[1]
-                    if len(sys.argv) > 2:
-                        out_name = sys.argv[2]
-                    else:
-                        out_name = filename.replace(".wrl", ".glb")
-            print("Converting", in_name, "to", out_name)
-            mesh2glb(f, out_name, removeColor= False)            
-    else:
-        if filename.endswith('.wrl'):
-            with open(os.path.join(directory, filename)):
-                f = os.path.join(directory, filename)
-            
-                if __name__ == "__main__":
-                    in_name = filename
-                    out_name = filename.replace(".wrl", ".glb")
+if __name__ == "__main__":
+    directory = 'ToConvert'
 
-                    if len(sys.argv) > 1:
-                        in_name = sys.argv[1]
-                        if len(sys.argv) > 2:
-                            out_name = sys.argv[2]
-                        else:
-                            out_name = filename.replace(".wrl", ".glb")
-                print("Converting", in_name, "to", out_name)
-                mesh2glb(f, out_name, removeColor= False)  
-    
-   
+    for filename in os.listdir(directory):
+        if filename.endswith('.ply'):
+            convert_file(directory, filename, '.ply')
+        elif filename.endswith('.wrl'):
+            convert_file(directory, filename, '.wrl')

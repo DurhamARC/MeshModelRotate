@@ -20,7 +20,19 @@ addpath('..');
 
 fprintf('=== Testing UZY Positioning on Real GLB Model ===\n\n');
 
-%% Method 1: Read PLY file (if converted from GLB)
+%% Method 1: Load pre-exported MAT
+% Use: save_mat_for_matlab.py to export
+mat_file = fullfile('..','ToConvert','converted','Wansunt_1931_7_11_10.mat');
+
+fprintf('Loading MAT file: %s\n', mat_file);
+data = load(mat_file);
+v = data.v;
+f = data.f;
+fprintf('  Vertices: %d\n', size(v,1));
+fprintf('  Faces: %d\n', size(f,1));
+
+
+%% Method 2: Read PLY file (if converted from GLB)
 % Requires: PLY reading function (e.g., from File Exchange)
 %
 % Uncomment and modify the path:
@@ -35,7 +47,7 @@ fprintf('=== Testing UZY Positioning on Real GLB Model ===\n\n');
 % fprintf('  Vertices: %d\n', size(v, 1));
 % fprintf('  Faces: %d\n', size(f, 1));
 
-%% Method 2: Use MATLAB's stlread (if you convert GLB to STL)
+%% Method 3: Use MATLAB's stlread (if you convert GLB to STL)
 %
 % stl_file = '../3DModels/Wansunt_1931_7_11_10.stl';
 % fprintf('Loading STL file: %s\n', stl_file);

@@ -4,6 +4,19 @@
 
 This repository contains scripts for rotating 3D models (GLB format) to a standardized face-on orientation using the methodology described in Grosman et al. 2008. The technique uses mathematical positioning based on the inertia tensor and surface normal distribution to objectively orient lithic artifacts (handaxes) for consistent measurement and documentation.
 
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Files Inventory](#files-inventory)
+- [Methodology: Grosman 2008 UZY Positioning](#methodology-grosman-2008-uzy-positioning)
+- [Input Data Format](#input-data-format)
+- [Installation & Setup](#installation--setup)
+- [Usage Instructions](#usage-instructions)
+- [Dependencies](#dependencies)
+- [Known Issues and Concerns](#known-issues-and-concerns)
+- [Scientific References](#scientific-references)
+
 ## Files Inventory
 
 ### Python Scripts
@@ -298,11 +311,3 @@ pip install trimesh pymeshlab
 ## Scientific References
 
 Grosman, L., Smikt, O., & Smilansky, U. (2008). On the application of 3-D scanning technology for the documentation and typology of lithic artifacts. Journal of Archaeological Science, 35(12), 3101-3110. doi:10.1016/j.jas.2008.06.011
-
-## Additional Resources
-
-The methodology produces:
-- **Objective positioning** - Reproducible across researchers
-- **Standard metric parameters** - Length, width, thickness at various positions
-- **3D-only parameters** - Volume, surface area, center of mass position
-- **Visual documentation** - Standardized views and cross-sections

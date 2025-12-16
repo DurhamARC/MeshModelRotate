@@ -252,7 +252,7 @@ def norm2posing(
 
     # Find the middle eigenvalue column
     indices = {0, 1, 2}
-    middle_idx = (indices - {max_idx, min_idx}).pop()
+    middle_idx = int((indices - {int(max_idx), int(min_idx)}).pop())
     y_axis_eig = eigenvectors[:, middle_idx]
 
     # Check if middle eigenvector matches computed y-axis
@@ -429,7 +429,7 @@ def planform_orientation(vertices: np.ndarray) -> Tuple[np.ndarray, int]:
     result = candidates[max_idx]
 
     # Return face-on view (lying flat) - upright orientation happens later
-    return result, max_idx
+    return result, int(max_idx)
 
 
 def find_mirror_symmetry(vertices: np.ndarray) -> float:
@@ -553,7 +553,7 @@ def find_mirror_symmetry(vertices: np.ndarray) -> float:
     # Find angle with minimum score (best symmetry)
     optimal_angle = np.argmin(symmetry_scores) + 1  # +1 because range started at 1
 
-    return optimal_angle
+    return float(optimal_angle)
 
 
 # =============================================================================

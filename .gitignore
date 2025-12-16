@@ -42,3 +42,7 @@ htmlcov/
 *.tmp
 *.bak
 *~
+
+# Mac OSX
+.DS_Store
+._*

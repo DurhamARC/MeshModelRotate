@@ -43,18 +43,6 @@ Main orchestration script that implements the complete positioning workflow.
 **Outputs:**
 - `v` - Rotated vertex array
 
-#### `facenormals.m`
-Utility function to compute face normal vectors for triangulated meshes.
-
-**Inputs:**
-- `f` - Face array (Mx3 matrix of vertex indices)
-- `v` - Vertex array (Nx3 matrix of XYZ coordinates)
-
-**Outputs:**
-- `fn` - Face normals (Mx3 matrix, magnitude = 2×triangle area)
-
-**Note:** This function was implemented based on the standard cross-product calculation. The original from your collaborator may differ slightly.
-
 **Processing Steps:**
 1. Translates mesh to origin (centers it)
 2. Applies UZY positioning based on inertia tensor (calls `UzyPosCm_for_GUI`)
@@ -113,6 +101,18 @@ Finds the optimal rotation angle around Z-axis for mirror symmetry.
 3. Mirrors the negative half and compares to positive half
 4. Calculates distance metric between mirrored and actual halves
 5. Returns angle that minimizes this distance (best mirror symmetry)
+
+#### `facenormals.m`
+Utility function to compute face normal vectors for triangulated meshes.
+
+**Inputs:**
+- `f` - Face array (Mx3 matrix of vertex indices)
+- `v` - Vertex array (Nx3 matrix of XYZ coordinates)
+
+**Outputs:**
+- `fn` - Face normals (Mx3 matrix, magnitude = 2×triangle area)
+
+**Note:** This function was implemented based on the standard cross-product calculation.
 
 ## Methodology: Grosman 2008 UZY Positioning
 
@@ -214,6 +214,7 @@ python "mesh2glb.py" path/to/input.wrl path/to/output.glb
 ```
 
 ### MATLAB
+Add files to convert under the `ToConvert/` directory.
 
 1. **Load your 3D model** (using your preferred method to get vertices and faces)
 
@@ -263,10 +264,8 @@ pip install trimesh pymeshlab
 
 ### Critical Issues
 
-1. **facenormals Function Implemented** ✅ ⚠️
-   `UzyPosCm_for_GUI.m` calls `facenormals(f,v)` which was missing from the original repository. An implementation has been created in [Gadi's Scripts/facenormals.m](Gadi's Scripts/facenormals.m) based on standard cross-product calculations.
-
-   **Note:** This is an implementation based on the expected behavior. When your collaborator responds, verify this matches their original function.
+1. **Incomplete facenormals Function** ⚠️
+   `UzyPosCm_for_GUI.m` calls `facenormals(f,v)` which an implementation has been made based on the expected functionality
 
 ### Design Issues
 
@@ -295,19 +294,6 @@ pip install trimesh pymeshlab
 
 8. **No Command-Line Interface for MATLAB**
     MATLAB scripts require manual function calls from the MATLAB environment.
-
-9. **Empty ToConvert Directory**
-    The `ToConvert/` directory exists but is empty, requiring users to add their own files.
-
-## Recommendations
-
-1. **Create facenormals.m** or use MATLAB's built-in `faceNormal()` from the mesh representation
-2. **Add error handling** to MATLAB scripts
-3. **Create example datasets** with expected input/output
-4. **Add command-line interface** for MATLAB workflows
-5. **Document coordinate system conventions**
-6. **Add unit tests** to verify positioning algorithm
-7. **Consider Python implementation** of MATLAB code for unified workflow
 
 ## Scientific References
 

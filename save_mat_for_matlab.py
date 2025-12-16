@@ -12,7 +12,7 @@ import sys
 import traceback
 
 import trimesh
-import scipy.io as siosa
+import scipy.io as sio
 import numpy as np
 
 

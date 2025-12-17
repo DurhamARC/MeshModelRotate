@@ -21,8 +21,11 @@ Date: 2025-12-16
 """
 
 import numpy as np
-from typing import Tuple, Optional
+from typing import Tuple, Optional, TYPE_CHECKING
 import warnings
+
+if TYPE_CHECKING:
+    import trimesh
 
 
 # =============================================================================
@@ -625,10 +628,10 @@ def positioning(
 
         # Get areas before rotation for metadata
         areas_tested = []
-        for i, candidate in enumerate([shape,
-                                       apply_rotation(shape, rotation_matrix_x(90)),
-                                       apply_rotation(apply_rotation(shape, rotation_matrix_x(90)),
-                                                     rotation_matrix_y(90))]):
+        for candidate in [shape,
+                         apply_rotation(shape, rotation_matrix_x(90)),
+                         apply_rotation(apply_rotation(shape, rotation_matrix_x(90)),
+                                       rotation_matrix_y(90))]:
             hull = ConvexHull(candidate[:, :2])  # XY projection (top-down)
             areas_tested.append(hull.volume)
 
@@ -668,23 +671,216 @@ def positioning(
 # COMMAND-LINE INTERFACE (Phase 3)
 # =============================================================================
 
+def load_mesh_from_file(filepath: str) -> "trimesh.Trimesh":
+    """Load mesh, handling both direct meshes and Scene objects.
+
+    Args:
+        filepath: Path to mesh file
+
+    Returns:
+        trimesh.Trimesh object
+
+    Raises:
+        ValueError: If scene has no geometry
+        FileNotFoundError: If file doesn't exist
+    """
+    import trimesh
+    from pathlib import Path
+    from typing import cast
+
+    if not Path(filepath).exists():
+        raise FileNotFoundError(f"File not found: {filepath}")
+
+    loaded = trimesh.load(filepath)
+
+    if isinstance(loaded, trimesh.Scene):
+        if len(loaded.geometry) == 0:
+            raise ValueError(f"Scene has no geometry: {filepath}")
+        # Get first geometry
+        mesh = cast(trimesh.Trimesh, list(loaded.geometry.values())[0])
+        print(f"  Extracted mesh from Scene (had {len(loaded.geometry)} geometries)")
+    else:
+        mesh = cast(trimesh.Trimesh, loaded)
+
+    return mesh
+
+
 def main():
-    """CLI entry point - will be implemented in Phase 3."""
+    """Command-line interface for UZY positioning.
+
+    Processes a single mesh file and applies UZY positioning with optional
+    planform optimization and mirror symmetry alignment.
+
+    Returns:
+        int: Exit code (0=success, 1=error)
+    """
     import argparse
+    import sys
+    import json
+    from pathlib import Path
 
     parser = argparse.ArgumentParser(
-        description="UZY positioning for 3D lithic artifacts (Grosman 2008)"
+        description="UZY positioning for 3D lithic artifacts (Grosman 2008)",
+        epilog="Examples:\n"
+               "  %(prog)s artifact.glb\n"
+               "  %(prog)s artifact.glb -o output.glb\n"
+               "  %(prog)s artifact.glb --uzy-only\n"
+               "  %(prog)s artifact.glb --save-metadata metadata.json\n"
+               "  %(prog)s artifact.glb --verbose --show",
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("input", help="Input mesh file (GLB/PLY/STL/OBJ)")
-    parser.add_argument("-o", "--output", help="Output file (default: input_positioned.glb)")
-    parser.add_argument("--planform", action="store_true", help="Enable planform optimization")
-    parser.add_argument("--symmetry", action="store_true", help="Enable mirror symmetry")
+
+    # Required arguments
+    parser.add_argument(
+        "input",
+        help="Input mesh file (GLB/PLY/STL/OBJ/OFF/GLTF)"
+    )
+
+    # Optional arguments
+    parser.add_argument(
+        "-o", "--output",
+        help="Output file (default: <input>_positioned.glb)"
+    )
+    parser.add_argument(
+        "--uzy-only",
+        action="store_true",
+        help="Run UZY positioning only (skip planform/symmetry)"
+    )
+    parser.add_argument(
+        "--save-metadata",
+        metavar="FILE",
+        help="Save transformation metadata to JSON file"
+    )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Show detailed output"
+    )
+    parser.add_argument(
+        "--show",
+        action="store_true",
+        help="Open 3D viewer after processing"
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress all output except errors"
+    )
 
     args = parser.parse_args()
 
-    print("CLI implementation coming in Phase 3")
-    print(f"Would process: {args.input}")
-    return 0
+    # Setup output level
+    quiet = args.quiet
+    verbose = args.verbose and not quiet
+
+    def vprint(*msg):
+        """Verbose print"""
+        if verbose:
+            print(*msg)
+
+    def print_always(*msg):
+        """Always print unless quiet"""
+        if not quiet:
+            print(*msg)
+
+    try:
+        # Load mesh
+        input_file = Path(args.input)
+        print_always(f"Loading: {input_file}")
+
+        mesh = load_mesh_from_file(str(input_file))
+
+        vprint(f"  Vertices: {len(mesh.vertices)}")
+        vprint(f"  Faces: {len(mesh.faces)}")
+        vprint(f"  Bounds: {mesh.bounds}")
+
+        # Determine output file
+        if args.output:
+            output_file = Path(args.output)
+        else:
+            suffix = "_uzy_only.glb" if args.uzy_only else "_positioned.glb"
+            output_file = input_file.parent / (input_file.stem + suffix)
+
+        # Run positioning
+        if args.uzy_only:
+            print_always("\nRunning UZY positioning only...")
+        else:
+            print_always("\nRunning complete positioning (UZY + Planform + Mirror Symmetry)...")
+
+        v_original = mesh.vertices.copy()
+
+        v_positioned, metadata = positioning(
+            mesh.vertices,
+            mesh.faces,
+            include_planform=not args.uzy_only,
+            include_mirror_symmetry=not args.uzy_only
+        )
+
+        print_always("  ✓ Positioning succeeded")
+
+        # Display metadata
+        if verbose:
+            print("\nMetadata:")
+            print(f"  Center offset: {metadata['center_offset']}")
+            print(f"  UZY transform:\n{metadata['uzy_transform']}")
+
+            if 'planform_rotation_index' in metadata:
+                print(f"\nPlanform optimization:")
+                print(f"  Selected rotation: {metadata['planform_rotation_index']} "
+                      f"(0=orig, 1=90°X, 2=90°X+90°Y)")
+                print(f"  Projected areas: {[f'{a:.2f}' for a in metadata['planform_areas']]}")
+
+            if 'symmetry_angle' in metadata:
+                print(f"\nMirror symmetry:")
+                print(f"  Optimal Z-rotation: {metadata['symmetry_angle']}°")
+
+            if 'upright_rotation' in metadata:
+                print(f"\nUpright orientation:")
+                print(f"  Final rotation: {metadata['upright_rotation']}")
+
+            # Displacement stats
+            displacement = np.linalg.norm(v_positioned - v_original, axis=1)
+            print(f"\nVertex displacement stats:")
+            print(f"  Mean: {displacement.mean():.4f}")
+            print(f"  Max: {displacement.max():.4f}")
+            print(f"  Min: {displacement.min():.4f}")
+
+        # Save metadata if requested
+        if args.save_metadata:
+            metadata_file = Path(args.save_metadata)
+            # Convert numpy arrays to lists for JSON serialization
+            metadata_json = {}
+            for key, value in metadata.items():
+                if isinstance(value, np.ndarray):
+                    metadata_json[key] = value.tolist()
+                else:
+                    metadata_json[key] = value
+
+            with open(metadata_file, 'w') as f:
+                json.dump(metadata_json, f, indent=2)
+            vprint(f"  Saved metadata to: {metadata_file}")
+
+        # Update mesh and save
+        mesh.vertices = v_positioned
+        mesh.export(str(output_file))
+        print_always(f"\n✓ Saved to: {output_file}")
+
+        # Optionally visualize
+        if args.show:
+            print_always("\nOpening 3D viewer...")
+            mesh.show()
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: Positioning failed: {e}", file=sys.stderr)
+        if verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
 
 
 if __name__ == "__main__":

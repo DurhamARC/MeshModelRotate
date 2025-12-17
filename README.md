@@ -41,7 +41,32 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate.bat
 pip install -r requirements.txt
 ```
 
-### Basic Usage
+### Command-Line Usage
+
+```bash
+# Process single file (default: save as <input>_positioned.glb)
+python positioning.py artifact.glb
+
+# Specify output file
+python positioning.py artifact.glb -o output.glb
+
+# UZY positioning only (skip planform/symmetry)
+python positioning.py artifact.glb --uzy-only
+
+# Save transformation metadata to JSON
+python positioning.py artifact.glb --save-metadata metadata.json
+
+# Verbose output with statistics
+python positioning.py artifact.glb --verbose
+
+# Open 3D viewer after processing
+python positioning.py artifact.glb --show
+
+# Quiet mode (errors only)
+python positioning.py artifact.glb --quiet
+```
+
+### Python API Usage
 
 ```python
 import trimesh
@@ -66,12 +91,6 @@ mesh.export('artifact_positioned.glb')
 print(f"Planform rotation: {metadata['planform_rotation_index']}")
 print(f"Symmetry angle: {metadata['symmetry_angle']}°")
 print(f"Upright rotation: {metadata['upright_rotation']}")
-```
-
-### Test Single File
-
-```bash
-python test_positioning.py 3DModels/artifact.glb
 ```
 
 ---

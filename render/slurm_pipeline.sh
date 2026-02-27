@@ -15,7 +15,7 @@
 #   mkdir -p logs
 #   sbatch MeshModelRotate/render/slurm_pipeline.sh
 
-set -euo pipefail
+set -uo pipefail
 
 CHUNK_SIZE=100
 REPO=/nobackup/jrhq77/MeshModelRotate

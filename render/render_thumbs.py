@@ -69,13 +69,18 @@ def setup_vertex_colour_material(obj):
 
 
 def setup_camera(mins, maxs):
-    """Position camera at 3/4 front-top angle, framing the bounding box."""
+    """Position camera facing the model front (-Y axis), with slight elevation.
+
+    After positioning.py (UZY), the face of the artifact is toward -Z in glTF
+    space, which Blender imports as -Y. Camera sits at azimuth 0° (straight
+    ahead along -Y) with a small elevation to show some top surface.
+    """
     centre = (mins + maxs) / 2
     size = (maxs - mins).length
 
-    # 45° elevation, 45° azimuth from front
-    angle_az = math.radians(45)
-    angle_el = math.radians(35)
+    # 0° azimuth (straight -Y), 20° elevation
+    angle_az = math.radians(0)
+    angle_el = math.radians(20)
     distance = size * 1.6
 
     cam_x = centre.x + distance * math.cos(angle_el) * math.sin(angle_az)

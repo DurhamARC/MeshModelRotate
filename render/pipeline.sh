@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Position and render GLB files as JPEG thumbnails.
+# Position and render GLB files as PNG thumbnails (RGBA with transparent background).
 #
 # Pipeline per file:
 #   1. positioning.py <file>.glb  ->  <file>_positioned.glb
-#   2. render_thumbs.py <file>_positioned.glb  ->  <file>_positioned_thumb.jpg
+#   2. render_thumbs.py <file>_positioned.glb  ->  <file>_positioned_thumb.png
 #
 # After verifying results, remove originals with:
 #   rm <GLB_DIR>/*.glb (excludes *_positioned.glb via the glob below)
@@ -99,7 +99,7 @@ process_one() {
     outdir="$dir"
   fi
 
-  local thumb="${outdir}/${base}_positioned_thumb.jpg"
+  local thumb="${outdir}/${base}_positioned_thumb.png"
   local logfile="${outdir}/${base}_positioned_thumb.log"
 
   if [[ $DRY_RUN -eq 1 ]]; then

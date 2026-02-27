@@ -1,11 +1,13 @@
 """
-Blender headless script: render a GLB with vertex colours to a JPEG thumbnail.
+Blender headless script: render a GLB with vertex colours to a PNG thumbnail.
 
-Usage (called by render_thumbs.sh, not directly):
-    blender --background --python render_thumbs.py -- <input.glb> <output.jpg>
+Usage (called by pipeline.sh or render_thumbs.sh, not directly):
+    blender --background --python render_thumbs.py -- <input.glb> <output.png>
 
-The camera is auto-positioned to frame the model from a 3/4 front-top view.
-Render size: 512x512. Output: JPEG quality 90.
+Camera faces the model front (-Y, as oriented by positioning.py UZY algorithm)
+with slight elevation. Renders with a shadow-catcher plane and transparent
+background so the drop shadow composites naturally in the browser/Omeka.
+Render size: 512x512. Output: PNG RGBA.
 """
 
 import bpy
@@ -81,7 +83,7 @@ def setup_camera(mins, maxs):
     # 0° azimuth (straight -Y), 20° elevation
     angle_az = math.radians(0)
     angle_el = math.radians(20)
-    distance = size * 1.6
+    distance = size * 1.3
 
     cam_x = centre.x + distance * math.cos(angle_el) * math.sin(angle_az)
     cam_y = centre.y - distance * math.cos(angle_el) * math.cos(angle_az)
@@ -102,52 +104,69 @@ def setup_camera(mins, maxs):
 
 
 def setup_lighting(centre, size):
-    """Match ModelViewer lighting: ambient + three equal directionals (front, left, right)."""
-    # Ambient via world background strength (set in setup_render)
+    """Directional lighting to match GLTFViewer: dominant key from upper-left-front,
+    weak fill from right, minimal rim. Gives contrast and preserves vertex colour warmth."""
 
-    # Sun lamps approximate the three camera-attached DirectionalLights in ModelViewer:
-    # front (z:5), left (x:-5), right (x:5) — all intensity 5.0, white
-    sun_energy = 3.0  # tuned for Cycles (ModelViewer intensity 5.0 is a Three.js scale)
+    # Key light: upper-left-front (strong, warm amber)
+    bpy.ops.object.light_add(type='SUN', location=(
+        centre.x - size * 1.5, centre.y - size * 1.5, centre.z + size))
+    key = bpy.context.object
+    key.data.energy = 2.5
+    key.data.color = (1.0, 0.90, 0.75)  # warm amber
+    key.rotation_euler = (math.radians(75), 0, math.radians(-45))
 
-    # Front light (from -Y toward origin)
-    bpy.ops.object.light_add(type='SUN', location=(centre.x, centre.y - size * 2, centre.z))
-    front = bpy.context.object
-    front.data.energy = sun_energy
-    front.rotation_euler = (math.radians(90), 0, 0)
+    # Fill light: right side, very dim (deep shadows)
+    bpy.ops.object.light_add(type='SUN', location=(
+        centre.x + size * 2, centre.y - size, centre.z + size * 0.3))
+    fill = bpy.context.object
+    fill.data.energy = 0.15
+    fill.data.color = (0.8, 0.9, 1.0)  # slightly cool to contrast key
+    fill.rotation_euler = (math.radians(20), 0, math.radians(60))
 
-    # Left light (from +X toward origin)
-    bpy.ops.object.light_add(type='SUN', location=(centre.x + size * 2, centre.y, centre.z))
-    left = bpy.context.object
-    left.data.energy = sun_energy
-    left.rotation_euler = (0, math.radians(-90), 0)
+    # Rim light: from behind-above to separate model from background
+    bpy.ops.object.light_add(type='SUN', location=(
+        centre.x, centre.y + size * 2, centre.z + size * 0.5))
+    rim = bpy.context.object
+    rim.data.energy = 0.15
+    rim.data.color = (1.0, 1.0, 1.0)
+    rim.rotation_euler = (math.radians(-30), 0, math.radians(180))
 
-    # Right light (from -X toward origin)
-    bpy.ops.object.light_add(type='SUN', location=(centre.x - size * 2, centre.y, centre.z))
-    right = bpy.context.object
-    right.data.energy = sun_energy
-    right.rotation_euler = (0, math.radians(90), 0)
 
+
+def add_shadow_catcher(mins, centre, size):
+    """Add a horizontal plane just below the model that catches shadows only."""
+    z = mins.z - size * 0.02
+    bpy.ops.mesh.primitive_plane_add(size=size * 3, location=(centre.x, centre.y, z))
+    plane = bpy.context.object
+    plane.is_shadow_catcher = True
+    mat = bpy.data.materials.new(name="ShadowCatcher")
+    mat.use_nodes = True
+    plane.data.materials.append(mat)
+    return plane
 
 
 def setup_render(output_path):
     scene = bpy.context.scene
     scene.render.engine = 'CYCLES'
-    scene.cycles.samples = 64
+    scene.cycles.samples = 128
     scene.cycles.use_denoising = False
     scene.render.resolution_x = 512
     scene.render.resolution_y = 512
-    scene.render.image_settings.file_format = 'JPEG'
-    scene.render.image_settings.quality = 90
+    # Use transparent film so shadow catcher composites onto background colour
+    scene.render.film_transparent = True
+    scene.render.image_settings.file_format = 'PNG'
+    scene.render.image_settings.color_mode = 'RGBA'
+    scene.render.image_settings.compression = 9
     scene.render.filepath = output_path
-    # Transparent background -> grey instead
-    scene.render.film_transparent = False
     scene.world = bpy.data.worlds.new("World")
     scene.world.use_nodes = True
     bg = scene.world.node_tree.nodes['Background']
-    # Background matches ModelViewer #d6d6d6, darkened 50%: #6b6b6b
     bg.inputs['Color'].default_value = (0.42, 0.42, 0.42, 1)
-    # Low strength to approximate ModelViewer's ambient intensity 0.1
-    bg.inputs['Strength'].default_value = 0.1
+    bg.inputs['Strength'].default_value = 0.05
+    # AgX gives better colour saturation than Filmic; bump exposure slightly
+    scene.view_settings.view_transform = 'AgX'
+    scene.view_settings.exposure = 0.3
+    scene.view_settings.gamma = 1.0
 
 
 def main():
@@ -179,6 +198,7 @@ def main():
 
     setup_camera(mins, maxs)
     setup_lighting(centre, size)
+    add_shadow_catcher(mins, centre, size)
     setup_render(out_path)
 
     bpy.ops.render.render(write_still=True)

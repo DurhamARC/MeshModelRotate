@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Render JPEG thumbnails from GLB files using Blender headlessly.
+# Render PNG thumbnails (RGBA, transparent background) from GLB files using Blender headlessly.
 #
 # Usage:
 #   ./render_thumbs.sh [OPTIONS] <GLB_DIR>
@@ -10,7 +10,7 @@
 #   -f         Force re-render even if thumbnail already exists
 #   --dry-run  Print what would be rendered without doing it
 #
-# Output files are named <basename>_thumb.jpg alongside each .glb,
+# Output files are named <basename>_thumb.png alongside each .glb,
 # or in the output directory if -o is specified.
 #
 # Requires: blender, xvfb-run
@@ -83,7 +83,7 @@ render_one() {
     outdir="$(dirname "$glb")"
   fi
 
-  local thumb="${outdir}/${base}_thumb.jpg"
+  local thumb="${outdir}/${base}_thumb.png"
 
   if [[ $FORCE -eq 0 && -f "$thumb" ]]; then
     echo "SKIP (exists): $thumb"

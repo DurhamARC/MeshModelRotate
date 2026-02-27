@@ -109,10 +109,10 @@ process_one() {
     return 0
   fi
 
-  # Step 1: position
+  # Step 1: position (run with clean PYTHONPATH so .venv python is not confused by blender's numpy)
   if [[ $FORCE -eq 1 || ! -f "$positioned" ]]; then
     echo "POSITIONING: $base"
-    if ! "$POSITIONING_PYTHON" "$POSITIONING_SCRIPT" "$glb" -o "$positioned" --quiet \
+    if ! PYTHONPATH="" "$POSITIONING_PYTHON" "$POSITIONING_SCRIPT" "$glb" -o "$positioned" --quiet \
         >> "$logfile" 2>&1; then
       echo "FAILED (positioning): $base (see $logfile)" >&2
       return 1

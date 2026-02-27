@@ -4,20 +4,20 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4G
-#SBATCH --time=01:00:00
-#SBATCH --array=0-26
+#SBATCH --time=00:30:00
+#SBATCH --array=0-131
 #SBATCH --output=/nobackup/jrhq77/logs/thumb_%A_%a.out
 #SBATCH --error=/nobackup/jrhq77/logs/thumb_%A_%a.err
 
 # Slurm array job: position + render GLBs in chunks of 100 files per task.
-# 27 tasks (0-26) x 100 files = 2700 slots, handles up to 2700 GLBs.
+# 132 tasks (0-131) x 20 files = 2640 slots, handles up to 2640 GLBs.
 # Submit from /nobackup/jrhq77:
 #   mkdir -p logs
 #   sbatch MeshModelRotate/render/slurm_pipeline.sh
 
 set -uo pipefail
 
-CHUNK_SIZE=100
+CHUNK_SIZE=20
 REPO=/nobackup/jrhq77/MeshModelRotate
 GLB_DIR=/nobackup/jrhq77/glbs
 BLENDER=/nobackup/jrhq77/blender-4.0.2-linux-x64/blender

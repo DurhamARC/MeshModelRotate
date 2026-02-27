@@ -1,6 +1,20 @@
-# UZY Positioning for Lithic Artifacts
+# MeshModelRotate
 
-Python implementation of the Grosman 2008 UZY positioning methodology for objective, reproducible orientation of 3D scanned lithic artifacts.
+Tools for objective positioning and thumbnail rendering of 3D scanned lithic artefacts, developed as part of the AHRC-funded project [*Digital Technologies, Acheulean Handaxes and the Social Landscapes of the Lower Palaeolithic*](https://gtr.ukri.org/projects?ref=AH%2FW009951%2F1) (AH/W009951/1).
+
+This repository provides:
+- **UZY positioning** (`positioning.py`) — objective, reproducible orientation of 3D scanned lithic artifacts using the Grosman 2008 methodology
+- **Thumbnail rendering** (`render/`) — headless Blender pipeline for batch-generating PNG thumbnails from GLB files, including a Slurm array job for HPC clusters
+
+---
+
+## Durham University Project Team
+
+| Project Member | Contact | Role | Unit |
+|---|---|---|---|
+| Dr. [Samantha Finnigan](https://github.com/sjmf) | [samantha.finnigan@dur.ac.uk](mailto:samantha.finnigan@durham.ac.uk) | Research Software Engineer (RSE) | [Advanced Research Computing](https://www.dur.ac.uk/arc/rse/) |
+| Dr. Freddie Foulds | [frederick.w.foulds@durham.ac.uk](mailto:frederick.w.foulds@durham.ac.uk) | Researcher Development Manager | [Durham Centre for Academic Development](https://www.durham.ac.uk/departments/academic/durham-centre-for-academic-development/) |
+| Matthew Phillips MA MCLIP | [m.e.phillips@durham.ac.uk](mailto:m.e.phillips@durham.ac.uk) | Head of Research and Systems | [University Library and Collections](https://www.durham.ac.uk/library/) |
 
 ---
 

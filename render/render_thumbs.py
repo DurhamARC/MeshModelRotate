@@ -105,7 +105,8 @@ def setup_camera(mins, maxs):
 
 def setup_lighting(centre, size):
     """Directional lighting to match GLTFViewer: dominant key from upper-left-front,
-    weak fill from right, minimal rim. Gives contrast and preserves vertex colour warmth."""
+    weak fill from right, minimal rim. Gives contrast and preserves vertex colour warmth.
+    The key casts no shadow; the shadow catcher shows only the soft fill/rim shadows."""
 
     # Key light: upper-left-front (strong, warm amber)
     bpy.ops.object.light_add(type='SUN', location=(
@@ -114,6 +115,10 @@ def setup_lighting(centre, size):
     key.data.energy = 2.5
     key.data.color = (1.0, 0.90, 0.75)  # warm amber
     key.rotation_euler = (math.radians(75), 0, math.radians(-45))
+    # No shadow from the key: it cast the long, hard shadow across the frame.
+    # Cycles 4.0 reads cycles.cast_shadow; use_shadow is EEVEE's (the two merge in Blender 4.2).
+    key.data.cycles.cast_shadow = False
+    key.data.use_shadow = False
 
     # Fill light: right side, very dim (deep shadows)
     bpy.ops.object.light_add(type='SUN', location=(
@@ -149,7 +154,9 @@ def setup_render(output_path):
     scene = bpy.context.scene
     scene.render.engine = 'CYCLES'
     scene.cycles.samples = 128
-    scene.cycles.use_denoising = False
+    # Denoise: Cycles noise otherwise dominates PNG size (~1MB per 512x512 thumbnail)
+    scene.cycles.use_denoising = True
+    scene.cycles.denoiser = 'OPENIMAGEDENOISE'
     scene.render.resolution_x = 512
     scene.render.resolution_y = 512
     # Use transparent film so shadow catcher composites onto background colour

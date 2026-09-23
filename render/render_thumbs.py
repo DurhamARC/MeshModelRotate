@@ -106,7 +106,8 @@ def setup_camera(mins, maxs):
 def setup_lighting(centre, size):
     """Directional lighting to match GLTFViewer: dominant key from upper-left-front,
     weak fill from right, minimal rim. Gives contrast and preserves vertex colour warmth.
-    The key casts no shadow; the shadow catcher shows only the soft fill/rim shadows."""
+    Neither the key nor the fill casts a shadow; the shadow catcher shows only the soft rim
+    shadow, so the model sits on the background without a directional cast."""
 
     # Key light: upper-left-front (strong, warm amber)
     bpy.ops.object.light_add(type='SUN', location=(
@@ -127,6 +128,10 @@ def setup_lighting(centre, size):
     fill.data.energy = 0.15
     fill.data.color = (0.8, 0.9, 1.0)  # slightly cool to contrast key
     fill.rotation_euler = (math.radians(20), 0, math.radians(60))
+    # No shadow from the fill either: it threw the cast to the lower left. Same API note as
+    # the key -- Cycles 4.0 reads cycles.cast_shadow, use_shadow is EEVEE's.
+    fill.data.cycles.cast_shadow = False
+    fill.data.use_shadow = False
 
     # Rim light: from behind-above to separate model from background
     bpy.ops.object.light_add(type='SUN', location=(

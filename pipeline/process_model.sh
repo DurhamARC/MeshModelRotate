@@ -73,11 +73,17 @@ in_container /code/convert.py "/in/$(basename "$INPUT")" /out \
   --source-label "$INPUT" "${FORCE[@]}"
 
 if [[ ! -f "$PNG" ]]; then
+  # xvfb-run can exit non-zero *after* a successful render: its cleanup kills an X server that has
+  # already exited ("xvfb-run: line 186: kill: (PID) - No such process"). Same spurious exit that
+  # 4a7900d worked around in render/slurm_pipeline.sh. Judge the render by whether the PNG was
+  # written, not by the exit status, or ~1 model in 3 is thrown away after all the work is done.
+  rc=0
   xvfb-run --auto-servernum "${BLENDER:-blender}" --threads "${BLENDER_THREADS:-0}" \
     --background --python "$RENDER_SCRIPT" \
-    -- "$GLB" "$PNG" > "$OUT_DIR/.$NAME.render.log" 2>&1 \
-    || { echo "ERROR: render failed, see $OUT_DIR/.$NAME.render.log" >&2; exit 1; }
-  [[ -f "$PNG" ]] || { echo "ERROR: render produced no PNG: $NAME" >&2; exit 1; }
+    -- "$GLB" "$PNG" > "$OUT_DIR/.$NAME.render.log" 2>&1 || rc=$?
+  [[ -f "$PNG" ]] || {
+    echo "ERROR: render failed (exit $rc), see $OUT_DIR/.$NAME.render.log" >&2; exit 1; }
+  (( rc == 0 )) || echo "NOTE: xvfb-run exited $rc but the PNG was written: $NAME" >&2
   rm -f "$OUT_DIR/.$NAME.render.log"
 fi
 

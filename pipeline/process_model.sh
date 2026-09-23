@@ -51,12 +51,26 @@ RUNNER="${PIPELINE_RUNNER:-$(command -v singularity >/dev/null && echo singulari
 # On Hamilton the code is rsynced into an older checkout, so the batch script passes the version in
 PIPELINE_VERSION="${PIPELINE_VERSION:-$(git -C "$CODE_DIR" describe --always --dirty 2>/dev/null || echo unknown)}"
 
+# Singularity parses --bind as a comma-separated list and has no escaping: on singularity-ce 4.5.0
+# a backslash is taken literally, and splitting the spec across several --bind flags does not help.
+# Museum names contain commas ("Seaside Museum, Herne Bay"), so the bind spec silently split and
+# every model in that collection died at container creation. Bind through comma-free symlinks,
+# which keeps the exact per-collection mounts and the read-only input.
+BIND_DIR="$(mktemp -d)"
+trap 'rm -rf "$BIND_DIR"' EXIT
+case "$BIND_DIR" in
+  *,*) echo "ERROR: temp bind dir contains a comma: $BIND_DIR" >&2; exit 1 ;;
+esac
+ln -s "$IN_DIR" "$BIND_DIR/in"
+ln -s "$OUT_DIR" "$BIND_DIR/out"
+ln -s "$CODE_DIR" "$BIND_DIR/code"
+
 # Run a pipeline script in the container with /in (read-only), /out and /code mounted
 in_container() {
   case "$RUNNER" in
     singularity)
       singularity exec --cleanenv --env "PIPELINE_VERSION=$PIPELINE_VERSION" \
-        --bind "$IN_DIR:/in:ro,$OUT_DIR:/out,$CODE_DIR:/code:ro" \
+        --bind "$BIND_DIR/in:/in:ro,$BIND_DIR/out:/out,$BIND_DIR/code:/code:ro" \
         "${PIPELINE_SIF:-/nobackup/$USER/pipeline/pipeline.sif}" python "$@" ;;
     docker)
       docker run --rm --user "$(id -u):$(id -g)" -e "PIPELINE_VERSION=$PIPELINE_VERSION" \

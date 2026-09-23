@@ -22,7 +22,7 @@ REPO=/nobackup/jrhq77/MeshModelRotate
 GLB_DIR=/nobackup/jrhq77/glbs
 BLENDER=/nobackup/jrhq77/blender-4.0.2-linux-x64/blender
 POSITIONING_PYTHON="$REPO/.venv/bin/python"
-POSITIONING_SCRIPT="$REPO/positioning.py"
+POSITIONING_SCRIPT="$REPO/uzy/positioning.py"
 BLENDER_SCRIPT="$REPO/render/render_thumbs.py"
 BLENDER_PYTHONPATH="$REPO/.venv-blender/lib/python3.10/site-packages"
 

@@ -2,7 +2,7 @@
 # Position and render GLB files as PNG thumbnails (RGBA with transparent background).
 #
 # Pipeline per file:
-#   1. positioning.py <file>.glb  ->  <file>_positioned.glb
+#   1. uzy/positioning.py <file>.glb  ->  <file>_positioned.glb
 #   2. render_thumbs.py <file>_positioned.glb  ->  <file>_positioned_thumb.png
 #
 # After verifying results, remove originals with:
@@ -29,7 +29,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$SCRIPT_DIR/.."
 BLENDER_SCRIPT="$SCRIPT_DIR/render_thumbs.py"
-POSITIONING_SCRIPT="$REPO_DIR/positioning.py"
+POSITIONING_SCRIPT="$REPO_DIR/uzy/positioning.py"
 POSITIONING_PYTHON="$REPO_DIR/.venv/bin/python"
 PYTHONPATH="$REPO_DIR/.venv-blender/lib/python3.12/site-packages"
 export PYTHONPATH

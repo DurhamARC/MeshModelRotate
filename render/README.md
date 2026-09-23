@@ -14,7 +14,7 @@ Output files are named `<basename>_thumb.png` alongside each `.glb`.
 
 For each GLB, the pipeline runs two steps:
 
-1. **Positioning** (`positioning.py`) — applies the UZY algorithm (Grosman 2008)
+1. **Positioning** (`uzy/positioning.py`) — applies the UZY algorithm (Grosman 2008)
    to orient the artifact objectively: longest axis vertical, face toward -Z
    (glTF) / -Y (Blender). Outputs `<basename>_positioned.glb`.
 2. **Render** (`render_thumbs.py`) — Blender headless render of the positioned

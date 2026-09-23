@@ -59,7 +59,8 @@ Orientation tests: `docker run --rm -v "$PWD/pipeline:/code:ro" -w /code hobscan
 
 ## Batch (Hamilton)
 
-After `transfer_to_hamilton.sh "<collection>"` has staged the WRLs:
+After `transfer_to_hamilton.sh "<collection>"` has staged the WRLs (on Hamilton the staged tree is
+`Museum_Files/`, with `wrl` a symlink to it — the scripts all read `$ROOT/wrl/<collection>`):
 
 ```bash
 cd /nobackup/jrhq77
@@ -69,10 +70,22 @@ sbatch --array=0-<N>%50 --export=ALL,CHUNK_SIZE=20 MeshModelRotate/pipeline/slur
 MeshModelRotate/pipeline/summarise.sh "<collection>"        # after the job; exit 1 if anything is missing/bad
 ```
 
+For the whole run, `submit_all.sh` does the manifest-and-submit loop over every staged collection.
+It is a **dry run** unless given `--submit`:
+
+```bash
+MeshModelRotate/pipeline/submit_all.sh                      # review the table; submits nothing
+MeshModelRotate/pipeline/submit_all.sh --submit             # queue them
+for c in $(cut -f2 logs/submitted_<UTC>.tsv | tail -n +2); do
+    MeshModelRotate/pipeline/summarise.sh "$c"
+done
+```
+
 | Script | Does |
 |--------|------|
 | `make_manifest.sh` | NUL-separated sorted list of `wrl/<collection>/**/*.wrl`; refuses duplicate stems (outputs are flat); prints the `sbatch` command with `--array` sized to the manifest. Submits nothing. |
 | `slurm_process.sh` | Array task *k* runs `process_model.sh` on models `k×CHUNK_SIZE …` into `out/<collection>/`. `shared`, 4 CPUs, 8GB, 1h. A failed model is logged `FAILED` and the rest of the chunk continues; the task exits non-zero if any failed. Resubmit to retry: complete models are skipped. Logs: `logs/hobscan_<job>_<task>.out`. |
+| `submit_all.sh` | Manifests and submits every staged collection. Dry run unless `--submit`. Skips a collection whose staged tree changed in the last `--quiet-mins` (default 10), so a transfer still in flight cannot freeze a short manifest (`--force` overrides). Shares one `--max-concurrent` budget (default 50 tasks ≈ 200 CPUs) across collections in proportion to size, instead of 22 arrays at `%50` each. Preflights the container, Blender, helpers and a non-empty `VERSION`. Job IDs → `logs/submitted_<UTC>.tsv`. |
 | `summarise.sh` | Checks every manifest entry has glb/png/json, JSON `complete`, GLB header shows the expected faces and `COLOR_0`; gathers `FAILED` log lines; lists `curvature_agrees_with_tip: false` models for review. Lists go to `reports/<collection>/<UTC>/` (outside `out/`, so not transferred). `HOBSCAN_OUT` overrides the output dir. |
 
 Syncing code: the Hamilton checkout is older, so rsync `pipeline/` and `render/` over it and write

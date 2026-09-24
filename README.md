@@ -25,12 +25,14 @@ different answers to it**. They are not interchangeable and they do not generall
 | Source | Grosman et al. 2008, validated against the original MATLAB | Dr Freddie Foulds' method, ported and bug-fixed |
 | Steps | Eigenvector analysis → planform optimisation → mirror-symmetry alignment → upright | PCA axes → face to camera → planform search → tip up by curvature |
 | Speed | ~2s per model | ~2s per model |
-| Use it for | New analytical work, where objective paper-conformant positioning matters and results must be comparable between artefacts | The HoBScan collections pipeline, for continuity with British Museum models already published in Omeka |
+| Use it for | New analytical work, where objective paper-conformant positioning matters and results must be comparable between artefacts | The HoBScan collections pipeline, as the method the project's archaeologist specified |
 
-The collections pipeline deliberately uses the PCA method rather than UZY: the British Museum GLBs
-already uploaded were produced with it, so switching to UZY would silently change the orientation of
-everything already published. That decision, and the four faults fixed while porting the method (one
-of them mirroring, a scientific error), are documented in [`pca/README.md`](pca/README.md).
+The collections pipeline deliberately uses the PCA method rather than UZY, because it is the method
+Freddie specified and wrote: the port keeps his algorithm and fixes its faults rather than replacing
+his archaeological judgement with a different one. The whole batch is reprocessed from the source
+WRLs, so this is not a compatibility constraint with anything previously uploaded. That decision,
+and the four faults fixed while porting (one of them mirroring, a scientific error), are documented
+in [`pca/README.md`](pca/README.md).
 
 ---
 

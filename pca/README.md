@@ -28,10 +28,12 @@ is what Grosman 2008 specifies and what makes measurements comparable between ar
 orients from the *distribution of vertices*. They are not equivalent, and they do not generally
 agree on a pose.
 
-The collections pipeline uses this method rather than UZY for continuity: the British Museum GLBs
-already published were produced with it, so reprocessing with UZY would silently change the
-orientation of everything already in Omeka. Use UZY for new analytical work where objective,
-paper-conformant positioning matters.
+The collections pipeline uses this method rather than UZY because it is the method Freddie
+specified and wrote. The port fixes its faults but keeps its algorithm, rather than substituting a
+different archaeological judgement about how a handaxe should be oriented. Note this is *not* a
+compatibility constraint: the whole batch is reprocessed from the source WRLs and supersedes the
+earlier GLBs entirely. Use UZY for new analytical work where objective, paper-conformant positioning
+matters.
 
 ## `original/` — Freddie's scripts, unmodified
 

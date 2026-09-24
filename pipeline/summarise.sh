@@ -70,10 +70,15 @@ for s in stems:
     except Exception as e:
         lists["bad_glb"].append("{}\tunreadable: {}".format(s, e))
         continue
-    # Inputs already at or below the target aren't decimated, so expect min(target, input faces)
+    # Inputs already at or below the target aren't decimated, so expect min(target, input faces).
+    # Quadric edge collapse stops when no further valid collapse exists, so it can finish a few
+    # faces short of the target -- 105 of 4,388 models landed 1-16 faces under, all otherwise
+    # sound. Allow 0.1% under (200 faces at the 200k target), but never over.
     expected = min(target, rec["input"]["faces"])
-    if faces != expected or not colour:
-        lists["bad_glb"].append("{}\tfaces={} expected={} colour={}".format(s, faces, expected, colour))
+    floor = int(expected * 0.999)
+    if not (floor <= faces <= expected) or not colour:
+        lists["bad_glb"].append(
+            "{}\tfaces={} expected={} (min {}) colour={}".format(s, faces, expected, floor, colour))
         continue
     complete += 1
     if not rec["orientation"].get("curvature_agrees_with_tip", True):

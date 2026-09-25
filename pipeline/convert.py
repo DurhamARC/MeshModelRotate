@@ -22,6 +22,7 @@ import numpy as np
 import pymeshlab
 import trimesh
 
+from material import MATERIAL, add_material
 from orient import orient_handaxe
 
 # Source trees that must never be written to (PIPELINE.md "Constraints"). Extend with
@@ -117,7 +118,7 @@ def main():
         sys.exit("ERROR: orientation inverted the mesh (volume changed sign)")
 
     t = time.time()
-    write_atomic(glb_path, lambda p: mesh.export(p, file_type="glb"))
+    write_atomic(glb_path, lambda p: mesh.export(p, file_type="glb", tree_postprocessor=add_material))
     timings["export"] = time.time() - t
 
     record = {
@@ -134,6 +135,7 @@ def main():
             "vertices": len(mesh.vertices),
             "faces": len(mesh.faces),
             "vertex_colour": colours is not None,
+            "material": MATERIAL,
             "watertight": bool(mesh.is_watertight),
             "volume": float(mesh.volume) if mesh.is_watertight else None,
             "extents": mesh.extents.tolist(),

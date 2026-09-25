@@ -4,8 +4,8 @@
 #   summarise.sh "<collection>"
 #
 # For every manifest entry: <stem>.{glb,png,json} exist, the JSON says "complete", and the GLB
-# (read from its own header, not the JSON) has vertex colours and the decimation target's face
-# count. Also lists FAILED lines from this collection's job logs, and models whose curvature check
+# (read from its own header, not the JSON) has vertex colours, a non-metallic material and the
+# decimation target's face count. Also lists FAILED lines from this collection's job logs, and models whose curvature check
 # disagrees with the tip-up choice (for review, not failures). Lists go to
 # $HOBSCAN_ROOT/reports/<collection>/<UTC>/ — outside out/, so transfer_from_hamilton.sh ignores them.
 # HOBSCAN_OUT overrides the output dir (e.g. to check the pilot). Exit 1 if anything is missing or bad.
@@ -37,19 +37,22 @@ with open(manifest, "rb") as f:
 
 
 def glb_info(path):
-    """Face count and whether every primitive has COLOR_0, from the GLB's JSON chunk."""
+    """Face count, and whether every primitive has COLOR_0 and a non-metallic material, from the
+    GLB's JSON chunk. A primitive without a material gets glTF's default, which is fully metallic."""
     with open(path, "rb") as f:
         magic, _, _ = struct.unpack("<4sII", f.read(12))
         if magic != b"glTF":
             raise ValueError("not a GLB")
         length, _ = struct.unpack("<I4s", f.read(8))
         gltf = json.loads(f.read(length).decode())
-    faces, colour = 0, True
+    faces, colour, material = 0, True, True
     for mesh in gltf["meshes"]:
         for prim in mesh["primitives"]:
             faces += gltf["accessors"][prim["indices"]]["count"] // 3
             colour = colour and "COLOR_0" in prim["attributes"]
-    return faces, colour
+            pbr = gltf["materials"][prim["material"]].get("pbrMetallicRoughness", {}) if "material" in prim else {}
+            material = material and pbr.get("metallicFactor", 1.0) == 0
+    return faces, colour, material
 
 
 lists = {"missing": [], "incomplete": [], "bad_glb": [], "review_orientation": []}
@@ -66,7 +69,7 @@ for s in stems:
         lists["incomplete"].append("{}\tstatus={}".format(s, rec.get("status")))
         continue
     try:
-        faces, colour = glb_info(paths["glb"])
+        faces, colour, material = glb_info(paths["glb"])
     except Exception as e:
         lists["bad_glb"].append("{}\tunreadable: {}".format(s, e))
         continue
@@ -76,9 +79,9 @@ for s in stems:
     # sound. Allow 0.1% under (200 faces at the 200k target), but never over.
     expected = min(target, rec["input"]["faces"])
     floor = int(expected * 0.999)
-    if not (floor <= faces <= expected) or not colour:
-        lists["bad_glb"].append(
-            "{}\tfaces={} expected={} (min {}) colour={}".format(s, faces, expected, floor, colour))
+    if not (floor <= faces <= expected) or not colour or not material:
+        lists["bad_glb"].append("{}\tfaces={} expected={} (min {}) colour={} material={}".format(
+            s, faces, expected, floor, colour, material))
         continue
     complete += 1
     if not rec["orientation"].get("curvature_agrees_with_tip", True):

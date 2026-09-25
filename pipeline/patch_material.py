@@ -11,7 +11,8 @@ Only the GLB's JSON chunk changes: the material is added (material.py) and the b
 geometry and vertex colours -- is copied through, then checked byte for byte against the original.
 Each file is written to a temp file and renamed, as in convert.py. The provenance JSON gets
 output.material, the new output.glb_size, and an entry in "patches" recording what was done.
-Standard library only, so it runs on the machine the share is mounted on.
+Prints a line per file and a progress summary every 100 files. Standard library only, so it runs
+on the machine the share is mounted on.
 
 Idempotent: a GLB that already has the material is left alone, and a JSON that already records it
 is too. If a run is interrupted between a GLB and its JSON, rerunning completes the JSON.
@@ -25,6 +26,7 @@ import os
 import struct
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from material import MATERIAL, add_material, has_material
@@ -138,37 +140,58 @@ def main():
             if d.resolve() == tree or tree in d.resolve().parents or d.resolve() in tree.parents:
                 sys.exit(f"ERROR: {d} overlaps protected source tree {tree}")
 
+    # Line-buffered, so progress shows through a pipe (e.g. into tee) as it happens
+    sys.stdout.reconfigure(line_buffering=True)
     version = pipeline_version()
+    glbs = sorted(p for d in args.dirs for p in d.rglob("*.glb") if not p.name.startswith("."))
+    total = len(glbs)
+    print(f"{'Applying' if args.apply else 'Dry run'} (pipeline {version}): {total} GLBs under "
+          f"{', '.join(str(d) for d in args.dirs)}")
+
     counts = {"patched": 0, "json_only": 0, "done": 0, "no_json": 0, "error": 0}
-    for glb_path in sorted(p for d in args.dirs for p in d.rglob("*.glb") if not p.name.startswith(".")):
+    started = time.time()
+    for i, glb_path in enumerate(glbs, 1):
+        t = time.time()
+        name = f"{glb_path.parent.name}/{glb_path.name}"
         json_path = glb_path.with_suffix(".json")
-        if not json_path.exists():
-            counts["no_json"] += 1
-            print(f"SKIP (no JSON): {glb_path}")
-            continue
         try:
-            glb_done = has_material(read_header(glb_path))
-            json_done = "material" in json.loads(json_path.read_text()).get("output", {})
-            if glb_done and json_done:
-                counts["done"] += 1
-                continue
-            if not args.apply:
-                counts["patched" if not glb_done else "json_only"] += 1
-                continue
-            if glb_done:
-                # Interrupted after the GLB was written: record it without its hashes
-                facts = {"note": "GLB already patched when the JSON was updated"}
-                counts["json_only"] += 1
+            if not json_path.exists():
+                outcome = "no_json"
             else:
-                facts = patch_glb(glb_path)
-                counts["patched"] += 1
-            patch_json(json_path, glb_path, facts, version)
+                glb_done = has_material(read_header(glb_path))
+                json_done = "material" in json.loads(json_path.read_text()).get("output", {})
+                if glb_done and json_done:
+                    outcome = "done"
+                elif not args.apply:
+                    outcome = "json_only" if glb_done else "patched"
+                elif glb_done:
+                    # Interrupted after the GLB was written: record it without its hashes
+                    patch_json(json_path, glb_path, {"note": "GLB already patched when the JSON was updated"},
+                               version)
+                    outcome = "json_only"
+                else:
+                    patch_json(json_path, glb_path, patch_glb(glb_path), version)
+                    outcome = "patched"
+            counts[outcome] += 1
+            label = {"patched": "PATCHED" if args.apply else "WOULD PATCH",
+                     "json_only": "JSON ONLY" if args.apply else "WOULD FIX JSON",
+                     "done": "ALREADY DONE", "no_json": "SKIP (no JSON)"}[outcome]
+            print(f"[{i}/{total}] {label}: {name} ({glb_path.stat().st_size / 1e6:.1f} MB, "
+                  f"{time.time() - t:.1f}s)")
         except Exception as e:  # report and carry on with the rest
             counts["error"] += 1
-            print(f"ERROR: {glb_path}: {e}")
+            print(f"[{i}/{total}] ERROR: {name}: {e}")
+
+        if i % 100 == 0 and i < total:
+            elapsed = time.time() - started
+            eta = elapsed / i * (total - i)
+            print(f"--- {i}/{total} ({100 * i / total:.0f}%) in {elapsed / 60:.1f} min, "
+                  f"{i / elapsed:.1f} files/s, ETA {eta / 60:.1f} min; "
+                  + ", ".join(f"{k} {v}" for k, v in counts.items() if v))
 
     verb = "patched" if args.apply else "to patch"
-    print(f"{'Applied' if args.apply else 'Dry run'} (pipeline {version}): "
+    print(f"{'Applied' if args.apply else 'Dry run'} (pipeline {version}) in "
+          f"{(time.time() - started) / 60:.1f} min: "
           f"{counts['patched']} {verb}, {counts['json_only']} JSON only, {counts['done']} already done, "
           f"{counts['no_json']} without JSON, {counts['error']} errors")
     sys.exit(1 if counts["error"] else 0)
